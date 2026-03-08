@@ -1,4 +1,4 @@
-# DevOps Project: Automated CI/CD Pipeline for a 2-Tier Flask Application on AWS
+# Two-Tier Flask App with Docker & Jenkins CI/CD on AWS
 
 **Author:** Shreeyash Patil
 **Institution:** Pimpri Chinchwad College of Engineering (PCCOE), Pune
@@ -22,9 +22,11 @@
 
 ## 1. Project Overview
 
-This project demonstrates a fully automated CI/CD pipeline for deploying a 2-tier web application (Flask + MySQL) on AWS EC2. The application is containerized using Docker and Docker Compose. Jenkins is integrated with GitHub to automatically trigger builds and deployments on every code push — no manual steps required.
+I built this to get hands-on with the DevOps tools I kept seeing in job descriptions — Docker, Jenkins, CI/CD pipelines. The app itself is simple: a Flask + MySQL message board running on AWS EC2. The interesting part is everything around it.
 
-**What the app does:** A simple message board where users can type and submit messages. Messages are stored in a MySQL database and displayed on the homepage.
+Push code to GitHub → Jenkins picks it up automatically → rebuilds the Docker image → redeploys the containers. No SSH-ing into the server, no manual docker commands. Just push and it's live.
+
+The app lets users type and submit messages, which get stored in MySQL and shown on the homepage. Nothing fancy, but it's enough to have a real two-tier architecture to containerize and wire together.
 
 ---
 
@@ -88,6 +90,12 @@ This project demonstrates a fully automated CI/CD pipeline for deploying a 2-tie
 | 8080 | TCP | Jenkins dashboard |
 | 5000 | TCP | Flask application |
 
+**Security Note:**
+For this learning/demo project, all ports are open to `0.0.0.0/0` (anywhere) for simplicity. In a production environment, best practices would be:
+- **Port 22 (SSH)** — restrict to your own IP only
+- **Port 8080 (Jenkins)** — restrict to your IP or put Jenkins behind a VPN
+- **Port 5000 (Flask)** — `0.0.0.0/0` is fine since it's a public web app
+
 **Connect to EC2:**
 ```bash
 ssh -i /path/to/key.pem ubuntu@<ec2-public-ip>
@@ -141,10 +149,12 @@ sudo systemctl restart jenkins
 
 Access Jenkins at `http://<ec2-public-ip>:8080` and complete the setup wizard.
 
-Retrieve the initial admin password:
+Get the initial admin password with:
 ```bash
 sudo cat /var/lib/jenkins/secrets/initialAdminPassword
 ```
+
+> **Note:** The standard curl/wget method for adding the Jenkins GPG key fails on Ubuntu 22.04 with a `NO_PUBKEY` error. The fix that actually works is fetching the key directly from Ubuntu's keyserver using the key ID from the error message.
 
 ---
 
@@ -270,27 +280,29 @@ pipeline {
 2. Fill in:
    - **Payload URL:** `http://<ec2-public-ip>:8080/github-webhook/`
    - **Content type:** `application/json`
-   - **SSL verification:** Disable
+   - **SSL verification:** Disable (Jenkins runs on plain HTTP, not HTTPS, so SSL verification will fail)
 3. Click **Add webhook**
 
-Now every `git push` to main automatically triggers Jenkins to build and deploy. ✅
+This is what makes it a real CI/CD pipeline. Without the webhook you're still clicking "Build Now" manually every time.
 
 ---
 
 ## 10. Conclusion
 
-The CI/CD pipeline is fully operational. The complete automated flow is:
+The full flow once everything is wired up:
 
 ```
 git push → GitHub webhook → Jenkins triggered → Docker image built → Containers deployed → App live
 ```
 
-Any push to the main branch automatically rebuilds and redeploys the application with zero manual intervention.
+The part I found most satisfying was pushing a code change and watching Jenkins kick off on its own. That's the whole point — you stop thinking about deployment as a separate manual task.
+
+One thing I'd do differently in a real setup: restrict port 22 and 8080 to specific IPs instead of leaving them open to `0.0.0.0/0`. Fine for a learning project, not for production.
 
 ---
 
 ## About
 
-Built as part of my DevOps learning journey — deploying a containerized Flask + MySQL application on AWS with a fully automated Jenkins CI/CD pipeline.
+3rd year Computer Engineering student at PCCOE, Pune. Built this project to learn Docker and Jenkins properly, not just read about them.
 
 **GitHub:** [ShreeyashPatil2708](https://github.com/ShreeyashPatil2708)
